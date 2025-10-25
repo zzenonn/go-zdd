@@ -1,0 +1,152 @@
+[
+  {
+    "scenario": "gaming_setup",
+    "timestamp": "2025-10-24T23:10:06.077405",
+    "capacity": 50,
+    "total_items": 10,
+    "success": true,
+    "optimal_value": 560.0,
+    "optimal_weight": 50.0,
+    "capacity_utilization": 100.0,
+    "selected_items": [
+      {
+        "name": "\ud83d\udda5\ufe0f Gaming Monitor",
+        "value": 100,
+        "weight": 15
+      },
+      {
+        "name": "\u2328\ufe0f Mechanical Keyboard",
+        "value": 60,
+        "weight": 2
+      },
+      {
+        "name": "\ud83d\uddb1\ufe0f Gaming Mouse",
+        "value": 40,
+        "weight": 1
+      },
+      {
+        "name": "\ud83c\udfa7 Gaming Headset",
+        "value": 80,
+        "weight": 3
+      },
+      {
+        "name": "\ud83d\udcbe SSD Drive",
+        "value": 90,
+        "weight": 1
+      },
+      {
+        "name": "\ud83d\udd79\ufe0f Game Controller",
+        "value": 50,
+        "weight": 2
+      },
+      {
+        "name": "\ud83d\udcf1 Phone Stand",
+        "value": 20,
+        "weight": 1
+      },
+      {
+        "name": "\ud83e\ude91 Gaming Chair",
+        "value": 120,
+        "weight": 25
+      }
+    ],
+    "greedy_value": 515.0,
+    "milp_improvement": 45.0,
+    "solver_time": 0.0
+  },
+  {
+    "scenario": "treasure_hunt",
+    "timestamp": "2025-10-24T23:10:06.080947",
+    "capacity": 100,
+    "total_items": 10,
+    "success": true,
+    "optimal_value": 1560.0,
+    "optimal_weight": 97.0,
+    "capacity_utilization": 97.0,
+    "selected_items": [
+      {
+        "name": "\ud83d\udc8e Diamond Ring",
+        "value": 200,
+        "weight": 5
+      },
+      {
+        "name": "\ud83c\udffa Ancient Vase",
+        "value": 180,
+        "weight": 8
+      },
+      {
+        "name": "\ud83d\udc51 Golden Crown",
+        "value": 300,
+        "weight": 15
+      },
+      {
+        "name": "\ud83d\udcff Pearl Necklace",
+        "value": 150,
+        "weight": 3
+      },
+      {
+        "name": "\ud83d\udde1\ufe0f Jeweled Sword",
+        "value": 250,
+        "weight": 20
+      },
+      {
+        "name": "\ud83d\udcb0 Gold Coins (bag)",
+        "value": 400,
+        "weight": 45
+      },
+      {
+        "name": "\ud83d\udcdc Ancient Map",
+        "value": 80,
+        "weight": 1
+      }
+    ],
+    "greedy_value": 1540.0,
+    "milp_improvement": 20.0,
+    "solver_time": 0.0
+  },
+  {
+    "scenario": "space_mission",
+    "timestamp": "2025-10-24T23:10:06.084023",
+    "capacity": 75,
+    "total_items": 10,
+    "success": true,
+    "optimal_value": 1370.0,
+    "optimal_weight": 75.0,
+    "capacity_utilization": 100.0,
+    "selected_items": [
+      {
+        "name": "\ud83d\ude80 Rocket Fuel",
+        "value": 500,
+        "weight": 30
+      },
+      {
+        "name": "\ud83d\udef0\ufe0f Communication Device",
+        "value": 200,
+        "weight": 8
+      },
+      {
+        "name": "\ud83d\udd2c Scientific Equipment",
+        "value": 300,
+        "weight": 15
+      },
+      {
+        "name": "\ud83e\udd6b Food Rations",
+        "value": 150,
+        "weight": 12
+      },
+      {
+        "name": "\ud83d\udd27 Repair Tools",
+        "value": 120,
+        "weight": 6
+      },
+      {
+        "name": "\ud83d\udc8a Medical Kit",
+        "value": 100,
+        "weight": 4
+      }
+    ],
+    "greedy_value": 1370.0,
+    "milp_improvement": 0.0,
+    "solver_time": 0.0
+  }
+]

@@ -1,0 +1,47 @@
+{
+  "gaming_setup": {
+    "capacity": 50,
+    "items": [
+      {"name": "🖥️ Gaming Monitor", "value": 100, "weight": 15},
+      {"name": "⌨️ Mechanical Keyboard", "value": 60, "weight": 2},
+      {"name": "🖱️ Gaming Mouse", "value": 40, "weight": 1},
+      {"name": "🎧 Gaming Headset", "value": 80, "weight": 3},
+      {"name": "💾 SSD Drive", "value": 90, "weight": 1},
+      {"name": "🕹️ Game Controller", "value": 50, "weight": 2},
+      {"name": "📱 Phone Stand", "value": 20, "weight": 1},
+      {"name": "🔌 Power Strip", "value": 30, "weight": 3},
+      {"name": "💡 RGB Lighting", "value": 45, "weight": 2},
+      {"name": "🪑 Gaming Chair", "value": 120, "weight": 25}
+    ]
+  },
+  "treasure_hunt": {
+    "capacity": 100,
+    "items": [
+      {"name": "💎 Diamond Ring", "value": 200, "weight": 5},
+      {"name": "🏺 Ancient Vase", "value": 180, "weight": 8},
+      {"name": "👑 Golden Crown", "value": 300, "weight": 15},
+      {"name": "📿 Pearl Necklace", "value": 150, "weight": 3},
+      {"name": "⚱️ Silver Urn", "value": 120, "weight": 12},
+      {"name": "🗡️ Jeweled Sword", "value": 250, "weight": 20},
+      {"name": "💰 Gold Coins (bag)", "value": 400, "weight": 45},
+      {"name": "🔮 Crystal Orb", "value": 100, "weight": 6},
+      {"name": "📜 Ancient Map", "value": 80, "weight": 1},
+      {"name": "⚖️ Golden Scale", "value": 160, "weight": 25}
+    ]
+  },
+  "space_mission": {
+    "capacity": 75,
+    "items": [
+      {"name": "🚀 Rocket Fuel", "value": 500, "weight": 30},
+      {"name": "🛰️ Communication Device", "value": 200, "weight": 8},
+      {"name": "🔬 Scientific Equipment", "value": 300, "weight": 15},
+      {"name": "🥫 Food Rations", "value": 150, "weight": 12},
+      {"name": "💧 Water Supply", "value": 180, "weight": 20},
+      {"name": "🔋 Solar Panels", "value": 250, "weight": 18},
+      {"name": "🧑‍🚀 Space Suit", "value": 400, "weight": 25},
+      {"name": "📡 Antenna Array", "value": 220, "weight": 14},
+      {"name": "🔧 Repair Tools", "value": 120, "weight": 6},
+      {"name": "💊 Medical Kit", "value": 100, "weight": 4}
+    ]
+  }
+}
