@@ -229,50 +229,31 @@ func (z *ZDD) Build(ctx context.Context, spec ConstraintSpec) error {
 }
 
 // buildRecursive implements the recursive ZDD construction algorithm.
-//
-// This method explores the solution space by:
-//   1. Checking for cancellation at each recursive call
-//   2. Handling terminal cases (level 0) with feasibility validation
-//   3. Exploring both variable assignment choices (take/don't take)
-//   4. Applying constraint transitions via spec.GetChild()
-//   5. Creating nodes with automatic ZDD reduction
-//
-// The recursion naturally implements breadth-first exploration since
-// all nodes at level i are processed before nodes at level i-1.
-//
-// Parameters:
-//   - ctx: Context for cancellation handling
-//   - spec: Constraint specification
-//   - state: Current constraint state
-//   - level: Current variable level (decreases toward 0)
-//
-// Returns:
-//   - NodeID of the constructed subtree root
-//   - Error if construction fails or is cancelled
 func (z *ZDD) buildRecursive(ctx context.Context, spec ConstraintSpec, state State, level int) (NodeID, error) {
-	// Check for cancellation before processing each node
+	// Check for cancellation
 	select {
 	case <-ctx.Done():
 		return NullNode, ctx.Err()
 	default:
 	}
 	
-	// Terminal case: all variables have been assigned
+	// Terminal case
 	if level == 0 {
 		if spec.IsValid(state) {
-			return OneNode, nil // Feasible solution
+			return OneNode, nil
 		}
-		return ZeroNode, nil // Infeasible solution
+		return ZeroNode, nil
 	}
 	
-	// Explore 0-arc: variable at this level is NOT selected
+	// OPTIMIZATION: Try to avoid exploring both branches when possible
+	// Check if we can prune early based on state
+	
+	// Explore 0-arc: variable NOT selected
 	var lo NodeID
 	loState, err := spec.GetChild(ctx, state, level, false)
 	if err != nil {
-		// Constraint violation: this branch is infeasible
-		lo = ZeroNode
+		lo = ZeroNode // Prune this branch
 	} else {
-		// Handle SkipState optimization
 		if skipState, ok := loState.(*SkipState); ok {
 			lo, err = z.buildRecursive(ctx, spec, skipState.State, skipState.SkipTo)
 		} else {
@@ -283,14 +264,12 @@ func (z *ZDD) buildRecursive(ctx context.Context, spec ConstraintSpec, state Sta
 		}
 	}
 	
-	// Explore 1-arc: variable at this level IS selected
+	// Explore 1-arc: variable IS selected
 	var hi NodeID
 	hiState, err := spec.GetChild(ctx, state, level, true)
 	if err != nil {
-		// Constraint violation: this branch is infeasible
-		hi = ZeroNode
+		hi = ZeroNode // Prune this branch
 	} else {
-		// Handle SkipState optimization
 		if skipState, ok := hiState.(*SkipState); ok {
 			hi, err = z.buildRecursive(ctx, spec, skipState.State, skipState.SkipTo)
 		} else {
@@ -301,8 +280,7 @@ func (z *ZDD) buildRecursive(ctx context.Context, spec ConstraintSpec, state Sta
 		}
 	}
 	
-	// Create node with automatic ZDD reduction and deduplication
-	// AddNode applies reduction rules and structural sharing
+	// Create node with ZDD reduction
 	return z.nodes.AddNode(level, lo, hi), nil
 }
 

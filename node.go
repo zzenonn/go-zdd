@@ -53,47 +53,38 @@ func (n Node) IsTerminal() bool {
 }
 
 // NodeTable manages ZDD nodes with automatic deduplication and reduction.
-//
-// The NodeTable ensures that:
-//   - Identical nodes are shared (structural sharing)
-//   - ZDD reduction rules are applied automatically
-//   - Thread-safe concurrent access to nodes
-//   - Efficient lookup and insertion operations
-//
-// Memory usage grows with the number of unique node specifications.
-// Nodes are never deleted once created to maintain NodeID validity.
+// Optimized for cache-friendly access patterns and reduced memory overhead.
 type NodeTable struct {
-	// mu protects concurrent access to nodes and hash map
 	mu sync.RWMutex
 	
 	// nodes stores the actual node data indexed by NodeID
 	nodes []Node
 	
-	// hash provides O(1) lookup for node deduplication
-	// Maps node specification to existing NodeID
-	hash map[Node]NodeID
+	// Cache-friendly hash table using open addressing
+	hashTable []hashEntry
+	hashMask   uint32 // Always power of 2 minus 1
 	
-	// next tracks the next available NodeID for assignment
 	next NodeID
 }
 
+// hashEntry represents a single entry in the hash table
+type hashEntry struct {
+	node Node
+	id   NodeID
+	used bool
+}
+
 // NewNodeTable creates a new node table with pre-initialized terminal nodes.
-//
-// The table is initialized with:
-//   - NullNode (ID 0): Invalid/uninitialized reference
-//   - ZeroNode (ID 1): 0-terminal representing empty set
-//   - OneNode (ID 2): 1-terminal representing base set
-//
-// Returns a thread-safe NodeTable ready for ZDD construction.
 func NewNodeTable() *NodeTable {
+	initialSize := uint32(1024) // Start with 1K entries
 	nt := &NodeTable{
-		nodes: make([]Node, 3), // Reserve space for null, 0, 1 terminals
-		hash:  make(map[Node]NodeID),
-		next:  3, // Start assigning IDs from 3
+		nodes:     make([]Node, 3),
+		hashTable: make([]hashEntry, initialSize),
+		hashMask:  initialSize - 1,
+		next:      3,
 	}
 	
-	// Initialize terminal nodes with Level 0
-	// Terminal nodes have null arcs since they don't branch further
+	// Initialize terminal nodes
 	nt.nodes[ZeroNode] = Node{Level: 0, Lo: NullNode, Hi: NullNode}
 	nt.nodes[OneNode] = Node{Level: 0, Lo: NullNode, Hi: NullNode}
 	
@@ -119,22 +110,7 @@ func (nt *NodeTable) GetNode(id NodeID) (Node, error) {
 }
 
 // AddNode creates a new node or returns an existing equivalent node.
-//
-// This method implements ZDD reduction rules:
-//   1. If hi == ZeroNode, return lo (eliminate redundant nodes)
-//   2. If an identical node exists, return its ID (structural sharing)
-//   3. Otherwise, create a new node with a fresh ID
-//
-// Parameters:
-//   - level: Variable level (must be > 0 for non-terminals)
-//   - lo: NodeID for the 0-arc (variable not selected)
-//   - hi: NodeID for the 1-arc (variable selected)
-//
-// Returns the NodeID of the created or existing equivalent node.
-// This method is thread-safe for concurrent construction.
 func (nt *NodeTable) AddNode(level int, lo, hi NodeID) NodeID {
-	// ZDD Reduction Rule: Eliminate nodes with hi-arc pointing to 0-terminal
-	// This maintains the zero-suppressed property of the diagram
 	if hi == ZeroNode {
 		return lo
 	}
@@ -144,25 +120,103 @@ func (nt *NodeTable) AddNode(level int, lo, hi NodeID) NodeID {
 	nt.mu.Lock()
 	defer nt.mu.Unlock()
 	
-	// Check for existing equivalent node (structural sharing)
-	if existing, exists := nt.hash[node]; exists {
+	// Check for existing node using cache-friendly hash table
+	if existing := nt.findNode(node); existing != NullNode {
 		return existing
 	}
 	
-	// Create new node with fresh ID
+	// Create new node
 	id := nt.next
 	nt.next++
 	
-	// Expand node storage if necessary
 	if int(id) >= len(nt.nodes) {
 		nt.nodes = append(nt.nodes, node)
 	} else {
 		nt.nodes[id] = node
 	}
 	
-	// Register node for future deduplication
-	nt.hash[node] = id
+	// Insert into hash table
+	nt.insertNode(node, id)
 	return id
+}
+
+// findNode searches for an existing node using open addressing
+func (nt *NodeTable) findNode(node Node) NodeID {
+	hash := nt.hashNode(node)
+	for i := uint32(0); i < uint32(len(nt.hashTable)); i++ {
+		idx := (hash + i) & nt.hashMask
+		entry := &nt.hashTable[idx]
+		
+		if !entry.used {
+			return NullNode // Not found
+		}
+		
+		if nt.nodesEqual(entry.node, node) {
+			return entry.id
+		}
+	}
+	return NullNode
+}
+
+// insertNode adds a node to the hash table, resizing if needed
+func (nt *NodeTable) insertNode(node Node, id NodeID) {
+	// Resize if load factor > 0.75
+	if nt.countUsed() > len(nt.hashTable)*3/4 {
+		nt.resizeHashTable()
+	}
+	
+	hash := nt.hashNode(node)
+	for i := uint32(0); i < uint32(len(nt.hashTable)); i++ {
+		idx := (hash + i) & nt.hashMask
+		entry := &nt.hashTable[idx]
+		
+		if !entry.used {
+			entry.node = node
+			entry.id = id
+			entry.used = true
+			return
+		}
+	}
+}
+
+// hashNode computes hash for a node using fast integer operations
+func (nt *NodeTable) hashNode(node Node) uint32 {
+	hash := uint32(node.Level)
+	hash = hash*31 + uint32(node.Lo)
+	hash = hash*31 + uint32(node.Hi)
+	return hash
+}
+
+// nodesEqual compares two nodes for equality
+func (nt *NodeTable) nodesEqual(a, b Node) bool {
+	return a.Level == b.Level && a.Lo == b.Lo && a.Hi == b.Hi
+}
+
+// countUsed counts used entries in hash table
+func (nt *NodeTable) countUsed() int {
+	count := 0
+	for i := range nt.hashTable {
+		if nt.hashTable[i].used {
+			count++
+		}
+	}
+	return count
+}
+
+// resizeHashTable doubles the hash table size
+func (nt *NodeTable) resizeHashTable() {
+	oldTable := nt.hashTable
+	newSize := uint32(len(oldTable)) * 2
+	
+	nt.hashTable = make([]hashEntry, newSize)
+	nt.hashMask = newSize - 1
+	
+	// Rehash all entries
+	for i := range oldTable {
+		if oldTable[i].used {
+			nt.insertNode(oldTable[i].node, oldTable[i].id)
+		}
+	}
 }
 
 // Size returns the total number of nodes in the table, excluding NullNode.

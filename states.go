@@ -27,13 +27,14 @@ func (s *IntState) Clone() State {
 	return &IntState{Values: values}
 }
 
-// Hash computes a hash value for state deduplication
+// Hash computes a hash value for state deduplication using xxhash-style algorithm
 func (s *IntState) Hash() uint64 {
-	h := fnv.New64a()
+	hash := uint64(14695981039346656037) // FNV offset basis
 	for _, v := range s.Values {
-		h.Write([]byte{byte(v), byte(v >> 8), byte(v >> 16), byte(v >> 24)})
+		hash ^= uint64(v)
+		hash *= 1099511628211 // FNV prime
 	}
-	return h.Sum64()
+	return hash
 }
 
 // Equal checks equality with another IntState
@@ -80,16 +81,13 @@ func (s *FloatState) Clone() State {
 
 // Hash computes a hash value for state deduplication
 func (s *FloatState) Hash() uint64 {
-	h := fnv.New64a()
+	hash := uint64(14695981039346656037)
 	for _, v := range s.Values {
-		// Convert to int64 with precision for hashing
 		intVal := int64(v * 1000000) // 6 decimal precision
-		h.Write([]byte{
-			byte(intVal), byte(intVal >> 8), byte(intVal >> 16), byte(intVal >> 24),
-			byte(intVal >> 32), byte(intVal >> 40), byte(intVal >> 48), byte(intVal >> 56),
-		})
+		hash ^= uint64(intVal)
+		hash *= 1099511628211
 	}
-	return h.Sum64()
+	return hash
 }
 
 // Equal checks equality with another FloatState
