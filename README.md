@@ -515,8 +515,10 @@ zdd := gozdd.NewZDD(10,
 
 1. **Variable Ordering**: Order variables by constraint tightness (most constrained first)
 2. **State Design**: Keep state minimal - only track what's necessary for constraints
-3. **Early Pruning**: Implement `CanPrune()` in constraints for better performance
-4. **Memory Management**: Use built-in state types to avoid allocation overhead
+3. **SkipState Optimization**: Use SkipState for problems with logical dependencies
+4. **Early Pruning**: Return errors from GetChild() to prune infeasible branches
+5. **Memory Management**: Use built-in state types to avoid allocation overhead
+6. **State Types**: Choose appropriate state type (IntState < FloatState < MapState for performance)
 
 ## Examples
 
