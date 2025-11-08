@@ -313,6 +313,116 @@ constraint := &gozdd.CustomConstraint{
 }
 ```
 
+## Advanced Constraint Patterns
+
+### Interdependent Constraints
+**Use Case**: When selecting one item creates requirements for other items
+
+**Problem**: You're buying electronics. If you buy a laptop, you MUST also buy a charger (dependency rule).
+
+**Variables**: 
+- Variable 1: laptop (0=don't buy, 1=buy)
+- Variable 2: charger (0=don't buy, 1=buy)  
+- Variable 3: mouse (0=don't buy, 1=buy)
+
+**Valid combinations**:
+- [0,0,0] = buy nothing ✓
+- [0,0,1] = buy only mouse ✓
+- [0,1,0] = buy only charger ✓ (allowed)
+- [0,1,1] = buy charger + mouse ✓
+- [1,0,0] = buy laptop without charger ❌ (violates rule!)
+- [1,1,0] = buy laptop + charger ✓
+- [1,1,1] = buy laptop + charger + mouse ✓
+
+```go
+type DependencySpec struct {
+    items []string // ["laptop", "charger", "mouse"]
+}
+
+func (ds *DependencySpec) InitialState() gozdd.State {
+    // Track what's been selected: [laptop_selected, charger_selected]
+    return gozdd.NewIntState(0, 0)
+}
+
+func (ds *DependencySpec) GetChild(ctx context.Context, state gozdd.State, level int, take bool) (gozdd.State, error) {
+    s := state.(*gozdd.IntState)
+    newState := s.Clone().(*gozdd.IntState)
+    
+    // ZDD processes variables from high to low level
+    // level 3 = laptop, level 2 = charger, level 1 = mouse
+    item := ds.items[level-1]
+    
+    if take {
+        if item == "laptop" {
+            newState.Values[0] = 1 // Remember: laptop was selected
+        } else if item == "charger" {
+            newState.Values[1] = 1 // Remember: charger was selected
+        }
+        // Mouse doesn't affect dependencies, so we don't track it
+    }
+    
+    return newState, nil
+}
+
+func (ds *DependencySpec) IsValid(state gozdd.State) bool {
+    s := state.(*gozdd.IntState)
+    laptopSelected := s.Values[0]   // Did we select laptop?
+    chargerSelected := s.Values[1]  // Did we select charger?
+    
+    // RULE: If laptop is selected, charger must also be selected
+    if laptopSelected == 1 && chargerSelected == 0 {
+        return false // Invalid: laptop without charger
+    }
+    
+    return true // All other combinations are valid
+}
+```
+
+**How it works**:
+1. **During construction**: ZDD tracks which items were selected in the state
+2. **At the end**: `IsValid()` checks if the dependency rule is satisfied
+3. **Result**: ZDD automatically eliminates invalid combinations like "laptop without charger"
+
+**Why this pattern is powerful**: 
+- The constraint spans multiple variables (laptop AND charger)
+- Can't be checked until all variables are assigned
+- ZDD handles the complex logic automatically
+
+### CountConstraint
+```go
+// Select exactly 3 items
+constraint := &gozdd.CountConstraint{Min: 3, Max: 3}
+
+// Select 2-5 items
+constraint := &gozdd.CountConstraint{Min: 2, Max: 5}
+```
+
+### SumConstraint
+```go
+// Weighted sum between 10 and 50
+weights := []float64{0, 2.5, 1.0, 3.0, 1.5} // 1-based indexing
+constraint := &gozdd.SumConstraint{
+    Weights: weights,
+    Min:     10.0,
+    Max:     50.0,
+}
+```
+
+### CustomConstraint
+```go
+// Custom business logic
+constraint := &gozdd.CustomConstraint{
+    Name: "No consecutive selection",
+    ValidateFunc: func(ctx context.Context, state gozdd.State, level int, take bool) error {
+        if take && level > 1 {
+            // Check if previous item was also selected
+            // (implementation depends on your state tracking)
+        }
+        return nil
+    },
+}
+```
+
 ## Type-Safe Evaluation
 
 ### Counting Solutions

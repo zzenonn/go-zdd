@@ -181,26 +181,26 @@ func main() {
 			continue
 		}
 		
-		// Find optimal solution (k=1)
+		// Find top 10 solutions
 		costs := make([]float64, len(items)+1) // 1-based indexing
 		for i, item := range items {
 			costs[i+1] = -item.Value // Negative because we want to maximize value
 		}
 		
-		solutions, err := zdd.FindKBest(ctx, 1, costs)
+		solutions, err := zdd.FindKBest(ctx, 10, costs)
 		if err != nil {
-			fmt.Printf("❌ %s: Optimal solution search failed: %v\n\n", scenario, err)
+			fmt.Printf("❌ %s: Top 10 solution search failed: %v\n\n", scenario, err)
 			allPassed = false
 			continue
 		}
 		
 		if len(solutions) == 0 {
-			fmt.Printf("❌ %s: No optimal solution found\n\n", scenario)
+			fmt.Printf("❌ %s: No solutions found\n\n", scenario)
 			allPassed = false
 			continue
 		}
 		
-		optimal := solutions[0]
+		optimal := solutions[0] // Best solution for validation
 		
 		// Calculate actual value and weight
 		actualValue := 0.0
@@ -247,6 +247,28 @@ func main() {
 		
 		if scenarioPassed {
 			fmt.Printf("✅ %s: PASSED (nodes: %d, solutions: %d)\n", scenario, zdd.Size(), totalSolutions)
+			
+			// Show top 10 solutions
+			fmt.Printf("   Top %d solutions:\n", len(solutions))
+			for i, sol := range solutions {
+				// Calculate actual value and weight for this solution
+				solValue := 0.0
+				solWeight := 0.0
+				solItems := make([]string, 0)
+				
+				for _, varLevel := range sol.Variables {
+					itemIndex := varLevel - 1
+					if itemIndex >= 0 && itemIndex < len(items) {
+						item := items[itemIndex]
+						solValue += item.Value
+						solWeight += item.Weight
+						solItems = append(solItems, item.Name)
+					}
+				}
+				
+				fmt.Printf("   %2d. Value: %4.0f, Weight: %4.0f, Items: %s\n", 
+					i+1, solValue, solWeight, strings.Join(solItems, ", "))
+			}
 		} else {
 			fmt.Printf("❌ %s: FAILED\n", scenario)
 			fmt.Printf("   Value: %.0f vs %.0f (match: %t)\n", actualValue, expected.OptimalValue, valueMatch)
