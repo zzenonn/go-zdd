@@ -290,5 +290,6 @@ func (s *SkipState) Equal(other State) bool {
 	if otherSkip, ok := other.(*SkipState); ok {
 		return s.SkipTo == otherSkip.SkipTo && s.State.Equal(otherSkip.State)
 	}
-	return false
+	// Allow SkipState to equal its wrapped state for proper deduplication
+	return s.State.Equal(other)
 }
