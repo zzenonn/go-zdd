@@ -258,3 +258,37 @@ func (s *MapState) Equal(other State) bool {
 	
 	return true
 }
+
+// SkipState wraps a state and indicates ZDD construction should skip to a specific level.
+//
+// This optimization is critical for problems with logical dependencies where certain
+// variable assignments make subsequent variables irrelevant. For example, in the TripS
+// data center problem, when P_{kt} = 0 (don't place storage), all related T_{jkt} and
+// B_{ijkt} variables must be 0, so construction can skip those levels entirely.
+type SkipState struct {
+	State  State // The actual constraint state
+	SkipTo int   // 1-based level to skip to (must be < current level)
+}
+
+// NewSkipState creates a SkipState that will cause construction to jump to the specified level.
+func NewSkipState(state State, skipTo int) *SkipState {
+	return &SkipState{State: state, SkipTo: skipTo}
+}
+
+// Clone creates a deep copy of the SkipState
+func (s *SkipState) Clone() State {
+	return &SkipState{State: s.State.Clone(), SkipTo: s.SkipTo}
+}
+
+// Hash delegates to the wrapped state's hash
+func (s *SkipState) Hash() uint64 {
+	return s.State.Hash()
+}
+
+// Equal checks equality with another State, handling SkipState comparison
+func (s *SkipState) Equal(other State) bool {
+	if otherSkip, ok := other.(*SkipState); ok {
+		return s.SkipTo == otherSkip.SkipTo && s.State.Equal(otherSkip.State)
+	}
+	return false
+}

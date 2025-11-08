@@ -272,7 +272,12 @@ func (z *ZDD) buildRecursive(ctx context.Context, spec ConstraintSpec, state Sta
 		// Constraint violation: this branch is infeasible
 		lo = ZeroNode
 	} else {
-		lo, err = z.buildRecursive(ctx, spec, loState, level-1)
+		// Handle SkipState optimization
+		if skipState, ok := loState.(*SkipState); ok {
+			lo, err = z.buildRecursive(ctx, spec, skipState.State, skipState.SkipTo)
+		} else {
+			lo, err = z.buildRecursive(ctx, spec, loState, level-1)
+		}
 		if err != nil {
 			return NullNode, err
 		}
@@ -285,7 +290,12 @@ func (z *ZDD) buildRecursive(ctx context.Context, spec ConstraintSpec, state Sta
 		// Constraint violation: this branch is infeasible
 		hi = ZeroNode
 	} else {
-		hi, err = z.buildRecursive(ctx, spec, hiState, level-1)
+		// Handle SkipState optimization
+		if skipState, ok := hiState.(*SkipState); ok {
+			hi, err = z.buildRecursive(ctx, spec, skipState.State, skipState.SkipTo)
+		} else {
+			hi, err = z.buildRecursive(ctx, spec, hiState, level-1)
+		}
 		if err != nil {
 			return NullNode, err
 		}
