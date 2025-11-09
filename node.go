@@ -64,6 +64,9 @@ type NodeTable struct {
 	hashTable []hashEntry
 	hashMask   uint32 // Always power of 2 minus 1
 	
+	// State memoization for TdZdd-style construction
+	stateCache map[uint64]NodeID // hash(state,level) -> NodeID
+	
 	next NodeID
 }
 
@@ -78,10 +81,11 @@ type hashEntry struct {
 func NewNodeTable() *NodeTable {
 	initialSize := uint32(1024) // Start with 1K entries
 	nt := &NodeTable{
-		nodes:     make([]Node, 3),
-		hashTable: make([]hashEntry, initialSize),
-		hashMask:  initialSize - 1,
-		next:      3,
+		nodes:      make([]Node, 3),
+		hashTable:  make([]hashEntry, initialSize),
+		hashMask:   initialSize - 1,
+		stateCache: make(map[uint64]NodeID),
+		next:       3,
 	}
 	
 	// Initialize terminal nodes
@@ -217,6 +221,36 @@ func (nt *NodeTable) resizeHashTable() {
 			nt.insertNode(oldTable[i].node, oldTable[i].id)
 		}
 	}
+}
+
+// LookupState checks if a state at a given level has been computed before.
+// Returns the cached NodeID if found, NullNode otherwise.
+func (nt *NodeTable) LookupState(state State, level int) NodeID {
+	nt.mu.RLock()
+	defer nt.mu.RUnlock()
+	
+	key := nt.stateKey(state, level)
+	if nodeID, exists := nt.stateCache[key]; exists {
+		return nodeID
+	}
+	return NullNode
+}
+
+// CacheState stores the result of computing a state at a given level.
+func (nt *NodeTable) CacheState(state State, level int, nodeID NodeID) {
+	nt.mu.Lock()
+	defer nt.mu.Unlock()
+	
+	key := nt.stateKey(state, level)
+	nt.stateCache[key] = nodeID
+}
+
+// stateKey computes a unique key for state memoization
+func (nt *NodeTable) stateKey(state State, level int) uint64 {
+	// Combine state hash with level using bit manipulation
+	stateHash := state.Hash()
+	levelHash := uint64(level) << 32
+	return stateHash ^ levelHash
 }
 
 // Size returns the total number of nodes in the table, excluding NullNode.
